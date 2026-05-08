@@ -1,0 +1,27 @@
+package com.school.itas.service;
+
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.school.itas.entity.*;
+
+import java.util.List;
+
+public interface SystemService {
+
+    // 院系
+    List<SysDepartment> listDepartments();
+    SysDepartment createDepartment(String name);
+    void deleteDepartment(Long id);
+
+    // 班级
+    List<SysClass> listClasses();
+    SysClass createClass(String className, Long departmentId, Integer grade, Long teacherId);
+    void deleteClass(Long id);
+
+    // 课程
+    List<Course> listCourses();
+    Course createCourse(String courseCode, String courseName, String subject, Long teacherId, String semester, Long classId);
+    void deleteCourse(Long id);
+
+    // 日志
+    Page<SysLog> listLogs(Integer page, Integer size, Long userId);
+}

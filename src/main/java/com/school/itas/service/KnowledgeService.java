@@ -1,4 +1,18 @@
 package com.school.itas.service;
 
-public class KnowledgeService {
+import com.school.itas.entity.KnowledgeDocument;
+import com.school.itas.model.req.KnowledgeDocReq;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
+
+public interface KnowledgeService {
+
+    KnowledgeDocument uploadDocument(Long uploaderId, KnowledgeDocReq req, MultipartFile file);
+
+    List<KnowledgeDocument> listDocuments(String subject, Integer page, Integer size);
+
+    void deleteDocument(Long docId);
+
+    void vectorizeDocument(Long docId);
 }

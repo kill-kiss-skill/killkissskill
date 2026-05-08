@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(java -version)",
+      "Bash(mvn -version)",
+      "Bash(mvn dependency:resolve -U)",
+      "Bash(curl *)",
+      "Bash(mvn compile *)",
+      "Bash(mysql *)",
+      "Bash(xargs -I{} jar tf {})",
+      "Bash(npm install *、)",
+      "Bash(npx vite *)"
+    ]
+  }
+}

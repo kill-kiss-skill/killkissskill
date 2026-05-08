@@ -1,0 +1,14 @@
+package com.school.itas.model.req;
+
+import jakarta.validation.constraints.NotBlank;
+import lombok.Data;
+
+@Data
+public class UpdatePasswordReq {
+
+    @NotBlank(message = "旧密码不能为空")
+    private String oldPassword;
+
+    @NotBlank(message = "新密码不能为空")
+    private String newPassword;
+}

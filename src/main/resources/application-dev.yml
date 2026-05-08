@@ -1,0 +1,64 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/itas?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: ruoyi123
+      database: 1
+      timeout: 3000ms
+
+  ai:
+    openai:
+      # DeepSeek Chat（对话）：https://platform.deepseek.com/api_keys
+      # Embedding 复用同一个 starter，base-url 指向智谱AI
+      # 两个 key 不同，通过下方分别配置
+      api-key: sk-d09954571be14961a872eae8f1a69e1f
+      base-url: https://api.deepseek.com
+      chat:
+        options:
+          model: deepseek-v4-pro
+          temperature: 0.7
+          max-tokens: 4096
+      # Embedding 单独覆盖（智谱AI兼容 OpenAI 接口）
+      embedding:
+        api-key: 9ee73f013db64b2bbe48c55e7db4b490.DABUzOB5sj2917Gj
+        base-url: https://open.bigmodel.cn/api/paas/v4
+        embeddings-path: /embeddings
+        options:
+          model: embedding-3
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+milvus:
+  # Zilliz Cloud：https://cloud.zilliz.com/ → 进入 Cluster → Connect
+  # endpoint 格式：https://in03-xxxx.api.gcp-us-west1.zillizcloud.com
+  endpoint: https://in03-cf23eccf059dd02.serverless.ali-cn-hangzhou.cloud.zilliz.com.cn
+  # API Key：Cluster 页面 → API Keys → 新建或复制
+  token: 0691025447236d41d5e23ee4054f796248a4168ad63bebbbbd820dbb11ac9137e572470240b6cd899080272e824b6a190fabc51b
+  collection-name: knowledge_vectors
+  dimension: 1536
+
+itas:
+  jwt:
+    secret: itas-jwt-secret-key-2025-must-be-at-least-32-chars
+    expiration: 86400000
+  upload:
+    path: ./uploads/
+  rag:
+    chunk-size: 512
+    chunk-overlap: 50
+    top-k: 5
