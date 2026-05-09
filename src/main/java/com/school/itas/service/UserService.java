@@ -24,4 +24,10 @@ public interface UserService {
     void updatePassword(Long userId, UpdatePasswordReq req);
 
     void updateProfile(Long userId, UpdateProfileReq req);
+
+    void updateUser(Long userId, UserCreateReq req);
+
+    void resetPassword(Long userId);
+
+    void deleteUser(Long userId);
 }

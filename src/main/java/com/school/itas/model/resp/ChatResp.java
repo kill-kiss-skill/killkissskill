@@ -9,6 +9,7 @@ public class ChatResp {
     private String sessionKey;
     private String role;
     private String answer;
+    private String createdAt;
     private List<ChunkRef> references;
 
     @Data

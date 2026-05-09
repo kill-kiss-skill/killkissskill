@@ -54,6 +54,18 @@ public class SystemServiceImpl implements SystemService {
     }
 
     @Override
+    public SysClass updateClass(Long id, String className, Long departmentId, Integer grade, Long teacherId) {
+        SysClass c = classMapper.selectById(id);
+        if (c == null) return null;
+        if (className != null) c.setClassName(className);
+        if (departmentId != null) c.setDepartmentId(departmentId);
+        if (grade != null) c.setGrade(grade);
+        c.setTeacherId(teacherId);
+        classMapper.updateById(c);
+        return c;
+    }
+
+    @Override
     public void deleteClass(Long id) {
         classMapper.deleteById(id);
     }
@@ -74,6 +86,21 @@ public class SystemServiceImpl implements SystemService {
         c.setSemester(semester);
         c.setClassId(classId);
         courseMapper.insert(c);
+        return c;
+    }
+
+    @Override
+    public Course updateCourse(Long id, String courseCode, String courseName, String subject,
+                                Long teacherId, String semester, Long classId) {
+        Course c = courseMapper.selectById(id);
+        if (c == null) return null;
+        if (courseCode != null) c.setCourseCode(courseCode);
+        if (courseName != null) c.setCourseName(courseName);
+        if (subject != null) c.setSubject(subject);
+        c.setTeacherId(teacherId);
+        if (semester != null) c.setSemester(semester);
+        c.setClassId(classId);
+        courseMapper.updateById(c);
         return c;
     }
 

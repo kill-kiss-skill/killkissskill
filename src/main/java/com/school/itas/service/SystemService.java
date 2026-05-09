@@ -15,11 +15,13 @@ public interface SystemService {
     // 班级
     List<SysClass> listClasses();
     SysClass createClass(String className, Long departmentId, Integer grade, Long teacherId);
+    SysClass updateClass(Long id, String className, Long departmentId, Integer grade, Long teacherId);
     void deleteClass(Long id);
 
     // 课程
     List<Course> listCourses();
     Course createCourse(String courseCode, String courseName, String subject, Long teacherId, String semester, Long classId);
+    Course updateCourse(Long id, String courseCode, String courseName, String subject, Long teacherId, String semester, Long classId);
     void deleteCourse(Long id);
 
     // 日志

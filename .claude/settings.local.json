@@ -9,7 +9,12 @@
       "Bash(mysql *)",
       "Bash(xargs -I{} jar tf {})",
       "Bash(npm install *、)",
-      "Bash(npx vite *)"
+      "Bash(npx vite *)",
+      "Bash(git *)",
+      "Bash(cd \"E:\\\\\\\\t\\\\\\\\桌面\\\\\\\\毕业设计\\\\\\\\毕设项目代码\\\\\\\\itas-frontend\")",
+      "Bash(node *)",
+      "Bash(npm install *)",
+      "mcp__ide__getDiagnostics"
     ]
   }
 }

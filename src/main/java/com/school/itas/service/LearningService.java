@@ -23,5 +23,9 @@ public interface LearningService {
 
     void saveScore(ScoreReq req, Long operatorId);
 
+    void updateScore(Long scoreId, ScoreReq req);
+
+    void deleteScore(Long scoreId);
+
     String importScores(MultipartFile file, Long courseId, String semester, Long operatorId);
 }

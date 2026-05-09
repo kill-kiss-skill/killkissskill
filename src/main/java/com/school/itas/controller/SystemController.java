@@ -55,6 +55,16 @@ public class SystemController {
         return Result.ok(systemService.createClass(className, departmentId, grade, teacherId));
     }
 
+    @Operation(summary = "编辑班级")
+    @PutMapping("/class/{id}")
+    public Result<SysClass> updateClass(@PathVariable Long id,
+                                         @RequestParam(required = false) String className,
+                                         @RequestParam(required = false) Long departmentId,
+                                         @RequestParam(required = false) Integer grade,
+                                         @RequestParam(required = false) Long teacherId) {
+        return Result.ok(systemService.updateClass(id, className, departmentId, grade, teacherId));
+    }
+
     @Operation(summary = "删除班级")
     @DeleteMapping("/class/{id}")
     public Result<Void> deleteClass(@PathVariable Long id) {
@@ -77,6 +87,18 @@ public class SystemController {
                                         @RequestParam String semester,
                                         @RequestParam(required = false) Long classId) {
         return Result.ok(systemService.createCourse(courseCode, courseName, subject, teacherId, semester, classId));
+    }
+
+    @Operation(summary = "编辑课程")
+    @PutMapping("/course/{id}")
+    public Result<Course> updateCourse(@PathVariable Long id,
+                                        @RequestParam(required = false) String courseCode,
+                                        @RequestParam(required = false) String courseName,
+                                        @RequestParam(required = false) String subject,
+                                        @RequestParam(required = false) Long teacherId,
+                                        @RequestParam(required = false) String semester,
+                                        @RequestParam(required = false) Long classId) {
+        return Result.ok(systemService.updateCourse(id, courseCode, courseName, subject, teacherId, semester, classId));
     }
 
     @Operation(summary = "删除课程")

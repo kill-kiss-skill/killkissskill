@@ -44,4 +44,25 @@ public class AdminController {
         userService.updateStatus(userId, status);
         return Result.ok();
     }
+
+    @Operation(summary = "编辑用户")
+    @PutMapping("/user/{userId}")
+    public Result<Void> updateUser(@PathVariable Long userId, @Valid @RequestBody UserCreateReq req) {
+        userService.updateUser(userId, req);
+        return Result.ok();
+    }
+
+    @Operation(summary = "重置密码")
+    @PutMapping("/user/{userId}/reset-password")
+    public Result<Void> resetPassword(@PathVariable Long userId) {
+        userService.resetPassword(userId);
+        return Result.ok();
+    }
+
+    @Operation(summary = "删除用户")
+    @DeleteMapping("/user/{userId}")
+    public Result<Void> deleteUser(@PathVariable Long userId) {
+        userService.deleteUser(userId);
+        return Result.ok();
+    }
 }

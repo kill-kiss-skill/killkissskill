@@ -2,6 +2,7 @@ package com.school.itas.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.school.itas.agent.ChatAgent;
+import com.school.itas.agent.LearningAnalyzeAgent;
 import com.school.itas.agent.MasterAgent;
 import com.school.itas.agent.ResourceAgent;
 import com.school.itas.common.enums.AgentTypeEnum;
@@ -27,11 +28,13 @@ public class ChatServiceImpl implements ChatService {
     private final MasterAgent masterAgent;
     private final ChatAgent chatAgent;
     private final ResourceAgent resourceAgent;
+    private final LearningAnalyzeAgent learningAnalyzeAgent;
     private final ChatSessionMapper sessionMapper;
     private final ChatMessageMapper messageMapper;
     private final LearningResourceMapper resourceMapper;
     private final StudentInfoMapper studentInfoMapper;
     private final ScoreMapper scoreMapper;
+    private final SysUserMapper userMapper;
 
     @Override
     @Transactional
@@ -70,10 +73,14 @@ public class ChatServiceImpl implements ChatService {
             List<LearningResource> resources = resourceMapper.selectList(null);
             answer = resourceAgent.recommend(weakSubjects, req.getSubject(), resources);
         } else {
-            // ANALYZE 路由到 chat 兜底
-            RagResultDTO[] ragOut = new RagResultDTO[1];
-            answer = chatAgent.answer(req.getMessage(), req.getSubject(), ragOut);
-            ragResult = ragOut[0];
+            // ANALYZE: 成绩分析路由
+            StudentInfo si = studentInfoMapper.selectOne(
+                    new LambdaQueryWrapper<StudentInfo>().eq(StudentInfo::getUserId, userId));
+            Long scoreStudentId = si != null ? si.getId() : userId;
+            List<Map<String, Object>> scoreData = scoreMapper.selectScoreDetailByStudent(scoreStudentId, null);
+            SysUser user = userMapper.selectById(userId);
+            String studentName = user != null ? user.getRealName() : "学生";
+            answer = learningAnalyzeAgent.analyze(studentName, scoreData);
         }
 
         // 保存 AI 回复
@@ -126,6 +133,7 @@ public class ChatServiceImpl implements ChatService {
                     ChatResp r = new ChatResp();
                     r.setSessionKey(sessionKey);
                     r.setRole(m.getRole());
+                    r.setCreatedAt(m.getCreatedAt() != null ? m.getCreatedAt().toString() : null);
                     r.setAnswer(m.getContent());
                     if (m.getRefChunkIds() != null) {
                         String[] ids = m.getRefChunkIds().split(",");

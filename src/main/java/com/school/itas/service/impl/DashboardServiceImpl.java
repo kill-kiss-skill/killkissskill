@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,27 +42,40 @@ public class DashboardServiceImpl implements DashboardService {
         Map<Long, List<Score>> byStudent = scores.stream()
                 .collect(Collectors.groupingBy(Score::getStudentId));
 
+        // 批量加载学生信息
+        Set<Long> studentIds = byStudent.keySet();
+        List<StudentInfo> studentInfos = studentInfoMapper.selectBatchIds(new ArrayList<>(studentIds));
+        Map<Long, StudentInfo> siMap = studentInfos.stream()
+                .collect(Collectors.toMap(StudentInfo::getId, Function.identity()));
+
+        // 批量加载用户信息
+        Set<Long> userIds = studentInfos.stream().map(StudentInfo::getUserId).collect(Collectors.toSet());
+        List<SysUser> users = userMapper.selectBatchIds(new ArrayList<>(userIds));
+        Map<Long, SysUser> userMap = users.stream()
+                .collect(Collectors.toMap(SysUser::getId, Function.identity()));
+
+        // 批量加载班级信息
+        Set<Long> classIds = studentInfos.stream().map(StudentInfo::getClassId).filter(Objects::nonNull).collect(Collectors.toSet());
+        List<SysClass> classes = classIds.isEmpty() ? List.of() : classMapper.selectBatchIds(new ArrayList<>(classIds));
+        Map<Long, SysClass> classMap = classes.stream()
+                .collect(Collectors.toMap(SysClass::getId, Function.identity()));
+
         return byStudent.entrySet().stream().map(entry -> {
             Long sid = entry.getKey();
-            List<Score> ss = entry.getValue();
-            StudentInfo si = studentInfoMapper.selectById(sid);
-            SysUser user = si != null ? userMapper.selectById(si.getUserId()) : null;
-            SysClass cls = si != null ? classMapper.selectById(si.getClassId()) : null;
+            List<Score> scoreList = entry.getValue();
+            double avg = scoreList.stream().mapToDouble(s ->
+                    s.getTotalScore() != null ? s.getTotalScore().doubleValue() : 0).average().orElse(0);
 
-            BigDecimal avg = ss.stream()
-                    .map(Score::getTotalScore)
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.collectingAndThen(
-                            Collectors.averagingDouble(BigDecimal::doubleValue),
-                            v -> BigDecimal.valueOf(v).setScale(1, RoundingMode.HALF_UP)));
+            StudentInfo si = siMap.get(sid);
+            SysUser user = si != null ? userMap.get(si.getUserId()) : null;
+            SysClass cls = si != null && si.getClassId() != null ? classMap.get(si.getClassId()) : null;
 
             TeacherStudentResp r = new TeacherStudentResp();
             r.setStudentId(sid);
-            r.setStudentName(user != null ? user.getRealName() : "未知");
             r.setStudentNo(si != null ? si.getStudentNo() : "");
+            r.setStudentName(user != null ? user.getRealName() : "未知");
             r.setClassName(cls != null ? cls.getClassName() : "");
-            r.setAvgScore(avg);
-            r.setScoreCount(ss.size());
+            r.setAvgScore(BigDecimal.valueOf(Math.round(avg * 10) / 10.0));
             return r;
         }).toList();
     }
@@ -84,9 +98,14 @@ public class DashboardServiceImpl implements DashboardService {
                 new LambdaQueryWrapper<LearningPlan>().eq(LearningPlan::getStudentId, userId));
         resp.setPlanCount(planCount.intValue());
 
+        // 批量加载课程信息
+        Set<Long> courseIds = scores.stream().map(Score::getCourseId).collect(Collectors.toSet());
+        Map<Long, Course> courseMap = courseMapper.selectBatchIds(new ArrayList<>(courseIds))
+                .stream().collect(Collectors.toMap(Course::getId, Function.identity()));
+
         Map<String, List<Score>> bySubject = scores.stream()
                 .collect(Collectors.groupingBy(s -> {
-                    Course c = courseMapper.selectById(s.getCourseId());
+                    Course c = courseMap.get(s.getCourseId());
                     return c != null ? c.getSubject() : "未知";
                 }));
         List<StudentDashboardResp.SubjectAvg> subjectAvgs = new ArrayList<>();

@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -25,6 +26,7 @@ public class LearningController {
 
     private final LearningService learningService;
 
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "获取学生成绩列表")
     @GetMapping("/scores")
     public Result<List<ScoreResp>> scores(
@@ -33,24 +35,28 @@ public class LearningController {
         return Result.ok(learningService.getStudentScores(studentId, semester));
     }
 
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "成绩分析（AI）")
     @GetMapping("/analyze")
     public Result<ScoreAnalysisResp> analyze(@RequestParam Long studentId) {
         return Result.ok(learningService.analyzeScore(studentId));
     }
 
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "生成个性化学习计划（AI）")
     @PostMapping("/plan/generate")
     public Result<LearningPlan> generatePlan(@RequestParam Long studentId) {
         return Result.ok(learningService.generatePlan(studentId));
     }
 
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "获取学习计划列表")
     @GetMapping("/plans")
     public Result<List<LearningPlanResp>> plans(@RequestParam Long studentId) {
         return Result.ok(learningService.getPlans(studentId));
     }
 
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "切换学习计划任务项完成状态")
     @PutMapping("/plan/item/{itemId}/toggle")
     public Result<Void> togglePlanItem(@PathVariable Long itemId) {
@@ -58,6 +64,7 @@ public class LearningController {
         return Result.ok();
     }
 
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     @Operation(summary = "录入成绩（教师）")
     @PostMapping("/score")
     public Result<Void> saveScore(@Valid @RequestBody ScoreReq req, Authentication auth) {
@@ -66,6 +73,7 @@ public class LearningController {
         return Result.ok();
     }
 
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     @Operation(summary = "Excel批量导入成绩（教师）")
     @PostMapping("/score/import")
     public Result<String> importScores(

@@ -43,6 +43,23 @@ public class ScoreController {
         return Result.ok(learningService.importScores(file, courseId, semester, (Long) auth.getPrincipal()));
     }
 
+    @Operation(summary = "更新成绩")
+    @PutMapping("/{scoreId}")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
+    public Result<Void> update(@PathVariable Long scoreId, @Valid @RequestBody ScoreReq req) {
+        learningService.updateScore(scoreId, req);
+        return Result.ok();
+    }
+
+    @Operation(summary = "删除成绩")
+    @DeleteMapping("/{scoreId}")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
+    public Result<Void> delete(@PathVariable Long scoreId) {
+        learningService.deleteScore(scoreId);
+        return Result.ok();
+    }
+
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "查询学生成绩")
     @GetMapping("/student/{studentId}")
     public Result<List<ScoreResp>> studentScores(
@@ -51,6 +68,7 @@ public class ScoreController {
         return Result.ok(learningService.getStudentScores(studentId, semester));
     }
 
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "AI成绩分析")
     @GetMapping("/analyze/{studentId}")
     public Result<ScoreAnalysisResp> analyze(@PathVariable Long studentId) {

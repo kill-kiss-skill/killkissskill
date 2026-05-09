@@ -143,6 +143,42 @@ public class UserServiceImpl implements UserService {
         userMapper.updateById(user);
     }
 
+    @Override
+    @Transactional
+    public void updateUser(Long userId, UserCreateReq req) {
+        SysUser user = userMapper.selectById(userId);
+        if (user == null) throw new BusinessException(404, "用户不存在");
+        if (!user.getUsername().equals(req.getUsername())) {
+            long count = userMapper.selectCount(
+                    new LambdaQueryWrapper<SysUser>().eq(SysUser::getUsername, req.getUsername()));
+            if (count > 0) throw new BusinessException("用户名已存在");
+        }
+        user.setUsername(req.getUsername());
+        user.setRealName(req.getRealName());
+        user.setRole(req.getRole());
+        user.setEmail(req.getEmail());
+        user.setPhone(req.getPhone());
+        userMapper.updateById(user);
+    }
+
+    @Override
+    public void resetPassword(Long userId) {
+        SysUser user = userMapper.selectById(userId);
+        if (user == null) throw new BusinessException(404, "用户不存在");
+        user.setPassword(passwordEncoder.encode("123456"));
+        userMapper.updateById(user);
+    }
+
+    @Override
+    @Transactional
+    public void deleteUser(Long userId) {
+        SysUser user = userMapper.selectById(userId);
+        if (user == null) throw new BusinessException(404, "用户不存在");
+        studentInfoMapper.delete(new LambdaQueryWrapper<StudentInfo>().eq(StudentInfo::getUserId, userId));
+        teacherInfoMapper.delete(new LambdaQueryWrapper<TeacherInfo>().eq(TeacherInfo::getUserId, userId));
+        userMapper.deleteById(userId);
+    }
+
     private UserInfoResp toResp(SysUser user) {
         UserInfoResp resp = new UserInfoResp();
         resp.setId(user.getId());
