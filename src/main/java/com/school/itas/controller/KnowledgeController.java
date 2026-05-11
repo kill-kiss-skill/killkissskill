@@ -42,9 +42,20 @@ public class KnowledgeController {
     @GetMapping("/list")
     public Result<List<KnowledgeDocument>> list(
             @RequestParam(required = false) String subject,
+            @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "20") Integer size) {
-        return Result.ok(knowledgeService.listDocuments(subject, page, size));
+        return Result.ok(knowledgeService.listDocuments(subject, keyword, page, size));
+    }
+
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
+    @Operation(summary = "编辑文档信息")
+    @PutMapping("/{docId}")
+    public Result<Void> update(@PathVariable Long docId,
+                               @RequestParam(required = false) String title,
+                               @RequestParam(required = false) String subject) {
+        knowledgeService.updateDocument(docId, title, subject);
+        return Result.ok();
     }
 
     @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")

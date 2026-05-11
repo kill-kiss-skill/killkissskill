@@ -3,6 +3,7 @@ package com.school.itas.controller;
 import com.school.itas.common.domain.Result;
 import com.school.itas.entity.LearningPlan;
 import com.school.itas.model.req.ScoreReq;
+import com.school.itas.model.resp.ImportResultResp;
 import com.school.itas.model.resp.LearningPlanResp;
 import com.school.itas.model.resp.ScoreAnalysisResp;
 import com.school.itas.model.resp.ScoreResp;
@@ -76,13 +77,13 @@ public class LearningController {
     @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     @Operation(summary = "Excel批量导入成绩（教师）")
     @PostMapping("/score/import")
-    public Result<String> importScores(
+    public Result<ImportResultResp> importScores(
             @RequestParam MultipartFile file,
             @RequestParam Long courseId,
             @RequestParam String semester,
             Authentication auth) {
         Long operatorId = (Long) auth.getPrincipal();
-        String batchNo = learningService.importScores(file, courseId, semester, operatorId);
-        return Result.ok(batchNo);
+        ImportResultResp result = learningService.importScores(file, courseId, semester, operatorId);
+        return Result.ok(result);
     }
 }

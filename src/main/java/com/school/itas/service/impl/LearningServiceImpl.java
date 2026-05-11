@@ -7,6 +7,7 @@ import com.school.itas.common.utils.ExcelUtil;
 import com.school.itas.entity.*;
 import com.school.itas.mapper.*;
 import com.school.itas.model.req.ScoreReq;
+import com.school.itas.model.resp.ImportResultResp;
 import com.school.itas.model.resp.LearningPlanResp;
 import com.school.itas.model.resp.ScoreAnalysisResp;
 import com.school.itas.model.resp.ScoreResp;
@@ -30,11 +31,12 @@ public class LearningServiceImpl implements LearningService {
     private final SysUserMapper userMapper;
     private final LearningPlanMapper planMapper;
     private final LearningPlanItemMapper planItemMapper;
+    private final CourseMapper courseMapper;
     private final LearningAnalyzeAgent analyzeAgent;
 
     @Override
     public List<ScoreResp> getStudentScores(Long studentId, String semester) {
-        // studentId is sys_user.id from frontend; resolve to student_info.id for score queries
+        // studentId may be sys_user.id (from student self-view) or student_info.id (from teacher view)
         StudentInfo si = studentInfoMapper.selectOne(
                 new LambdaQueryWrapper<StudentInfo>().eq(StudentInfo::getUserId, studentId));
         Long scoreStudentId = si != null ? si.getId() : studentId;
@@ -42,6 +44,8 @@ public class LearningServiceImpl implements LearningService {
         return details.stream().map(row -> {
             ScoreResp r = new ScoreResp();
             r.setId(toLong(row.get("id")));
+            r.setStudentName(str(row.get("student_name")));
+            r.setStudentNo(str(row.get("student_no")));
             r.setCourseName(str(row.get("course_name")));
             r.setSubject(str(row.get("subject")));
             r.setUsualScore(toDecimal(row.get("usual_score")));
@@ -176,6 +180,14 @@ public class LearningServiceImpl implements LearningService {
     @Override
     @Transactional
     public void saveScore(ScoreReq req, Long operatorId) {
+        // 校验教师是否有权为该课程录入成绩
+        Course course = courseMapper.selectById(req.getCourseId());
+        if (course == null) {
+            throw new BusinessException(400, "课程不存在");
+        }
+        if (!operatorId.equals(course.getTeacherId())) {
+            throw new BusinessException(403, "您只能为自己教授的课程录入成绩");
+        }
         BigDecimal total = calcTotal(req.getUsualScore(), req.getMidScore(), req.getFinalScore());
         // 检查重复
         long existing = scoreMapper.selectCount(new LambdaQueryWrapper<Score>()
@@ -202,7 +214,7 @@ public class LearningServiceImpl implements LearningService {
 
     @Override
     @Transactional
-    public String importScores(MultipartFile file, Long courseId, String semester, Long operatorId) {
+    public ImportResultResp importScores(MultipartFile file, Long courseId, String semester, Long operatorId) {
         String batchNo = UUID.randomUUID().toString().replace("-", "");
         ScoreImportBatch batch = new ScoreImportBatch();
         batch.setBatchNo(batchNo);
@@ -213,39 +225,80 @@ public class LearningServiceImpl implements LearningService {
         batch.setStatus(0);
         batchMapper.insert(batch);
 
-        List<ScoreReq> rows = ExcelUtil.readExcel(file, row -> {
+        List<ScoreReq> rows = new ArrayList<>();
+        List<ImportResultResp.ImportError> parseErrors = new ArrayList<>();
+
+        List<org.apache.poi.ss.usermodel.Row> rawRows = ExcelUtil.readExcelRaw(file);
+        for (int i = 0; i < rawRows.size(); i++) {
+            org.apache.poi.ss.usermodel.Row row = rawRows.get(i);
+            int excelRow = i + 2; // Excel行号（第1行是表头）
             String studentNo = ExcelUtil.getCellString(row, 0);
-            if (studentNo == null) return null;
-            StudentInfo si = studentInfoMapper.selectOne(
-                    new LambdaQueryWrapper<StudentInfo>().eq(StudentInfo::getStudentNo, studentNo));
-            if (si == null) return null;
+            String studentName = ExcelUtil.getCellString(row, 1);
+            if (studentNo == null && studentName == null) continue;
+
+            // 先按学号查找，失败则按姓名查找
+            StudentInfo si = null;
+            if (studentNo != null) {
+                si = studentInfoMapper.selectOne(
+                        new LambdaQueryWrapper<StudentInfo>().eq(StudentInfo::getStudentNo, studentNo));
+            }
+            if (si == null && studentName != null) {
+                // 按姓名匹配：通过 sys_user.real_name 查找
+                List<SysUser> byName = userMapper.selectList(
+                        new LambdaQueryWrapper<SysUser>().eq(SysUser::getRealName, studentName));
+                if (byName.size() == 1) {
+                    si = studentInfoMapper.selectOne(
+                            new LambdaQueryWrapper<StudentInfo>().eq(StudentInfo::getUserId, byName.get(0).getId()));
+                } else if (byName.size() > 1) {
+                    parseErrors.add(new ImportResultResp.ImportError(excelRow, "姓名\"" + studentName + "\"匹配到多个学生，请使用学号"));
+                    continue;
+                }
+            }
+            if (si == null) {
+                parseErrors.add(new ImportResultResp.ImportError(excelRow, "未找到学生（学号:" + studentNo + " 姓名:" + studentName + "）"));
+                continue;
+            }
+
             ScoreReq req = new ScoreReq();
             req.setStudentId(si.getId());
             req.setCourseId(courseId);
-            req.setUsualScore(ExcelUtil.getCellDecimal(row, 1));
-            req.setMidScore(ExcelUtil.getCellDecimal(row, 2));
-            req.setFinalScore(ExcelUtil.getCellDecimal(row, 3));
+            // 列C=平时分(列2), 列D=期中分(列3), 列E=期末分(列4)（如有列B姓名则列偏移+1）
+            int colOffset = studentName != null ? 1 : 0;
+            req.setUsualScore(ExcelUtil.getCellDecimal(row, 1 + colOffset));
+            req.setMidScore(ExcelUtil.getCellDecimal(row, 2 + colOffset));
+            req.setFinalScore(ExcelUtil.getCellDecimal(row, 3 + colOffset));
             req.setSemester(semester);
-            return req;
-        });
+            rows.add(req);
+        }
 
+        ImportResultResp result = new ImportResultResp();
+        result.setBatchNo(batchNo);
+        result.setTotalRows(rows.size() + parseErrors.size());
         int success = 0, fail = 0;
-        for (ScoreReq req : rows) {
+        List<ImportResultResp.ImportError> allErrors = new ArrayList<>(parseErrors);
+
+        for (int i = 0; i < rows.size(); i++) {
+            ScoreReq req = rows.get(i);
             try {
                 saveScore(req, operatorId);
                 success++;
             } catch (Exception e) {
                 fail++;
+                allErrors.add(new ImportResultResp.ImportError(i + 2, e.getMessage()));
             }
         }
 
-        batch.setTotalRows(rows.size());
+        result.setSuccessRows(success);
+        result.setFailRows(fail);
+        result.setErrors(allErrors);
+
+        batch.setTotalRows(result.getTotalRows());
         batch.setSuccessRows(success);
         batch.setFailRows(fail);
         batch.setStatus(1);
         batchMapper.updateById(batch);
 
-        return batchNo;
+        return result;
     }
 
     @Override

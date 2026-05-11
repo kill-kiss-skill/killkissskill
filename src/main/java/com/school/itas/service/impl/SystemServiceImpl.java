@@ -2,6 +2,7 @@ package com.school.itas.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.school.itas.common.exception.BusinessException;
 import com.school.itas.entity.*;
 import com.school.itas.mapper.*;
 import com.school.itas.service.SystemService;
@@ -33,13 +34,29 @@ public class SystemServiceImpl implements SystemService {
     }
 
     @Override
+    public SysDepartment updateDepartment(Long id, String name) {
+        SysDepartment d = departmentMapper.selectById(id);
+        if (d == null) throw new BusinessException(404, "院系不存在");
+        d.setName(name);
+        departmentMapper.updateById(d);
+        return d;
+    }
+
+    @Override
     public void deleteDepartment(Long id) {
         departmentMapper.deleteById(id);
     }
 
     @Override
-    public List<SysClass> listClasses() {
-        return classMapper.selectList(null);
+    public List<SysClass> listClasses(String keyword, Long departmentId) {
+        LambdaQueryWrapper<SysClass> wrapper = new LambdaQueryWrapper<>();
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            wrapper.like(SysClass::getClassName, keyword);
+        }
+        if (departmentId != null) {
+            wrapper.eq(SysClass::getDepartmentId, departmentId);
+        }
+        return classMapper.selectList(wrapper);
     }
 
     @Override
@@ -56,7 +73,7 @@ public class SystemServiceImpl implements SystemService {
     @Override
     public SysClass updateClass(Long id, String className, Long departmentId, Integer grade, Long teacherId) {
         SysClass c = classMapper.selectById(id);
-        if (c == null) return null;
+        if (c == null) throw new BusinessException(404, "班级不存在");
         if (className != null) c.setClassName(className);
         if (departmentId != null) c.setDepartmentId(departmentId);
         if (grade != null) c.setGrade(grade);
@@ -71,8 +88,16 @@ public class SystemServiceImpl implements SystemService {
     }
 
     @Override
-    public List<Course> listCourses() {
-        return courseMapper.selectList(null);
+    public List<Course> listCourses(String keyword, Long teacherId) {
+        LambdaQueryWrapper<Course> wrapper = new LambdaQueryWrapper<>();
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            wrapper.and(w -> w.like(Course::getCourseName, keyword)
+                .or().like(Course::getSubject, keyword));
+        }
+        if (teacherId != null) {
+            wrapper.eq(Course::getTeacherId, teacherId);
+        }
+        return courseMapper.selectList(wrapper);
     }
 
     @Override
@@ -93,7 +118,7 @@ public class SystemServiceImpl implements SystemService {
     public Course updateCourse(Long id, String courseCode, String courseName, String subject,
                                 Long teacherId, String semester, Long classId) {
         Course c = courseMapper.selectById(id);
-        if (c == null) return null;
+        if (c == null) throw new BusinessException(404, "课程不存在");
         if (courseCode != null) c.setCourseCode(courseCode);
         if (courseName != null) c.setCourseName(courseName);
         if (subject != null) c.setSubject(subject);

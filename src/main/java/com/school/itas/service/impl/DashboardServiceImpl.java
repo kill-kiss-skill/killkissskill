@@ -5,6 +5,7 @@ import com.school.itas.entity.*;
 import com.school.itas.mapper.*;
 import com.school.itas.model.resp.AdminDashboardResp;
 import com.school.itas.model.resp.StudentDashboardResp;
+import com.school.itas.model.resp.TeacherCourseResp;
 import com.school.itas.model.resp.TeacherDashboardResp;
 import com.school.itas.model.resp.TeacherStudentResp;
 import com.school.itas.service.DashboardService;
@@ -31,7 +32,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final SysClassMapper classMapper;
 
     @Override
-    public List<TeacherStudentResp> getTeacherStudents(Long userId) {
+    public List<TeacherStudentResp> getTeacherStudents(Long userId, String keyword) {
         List<Course> courses = courseMapper.selectList(
                 new LambdaQueryWrapper<Course>().eq(Course::getTeacherId, userId));
         List<Long> courseIds = courses.stream().map(Course::getId).toList();
@@ -42,24 +43,22 @@ public class DashboardServiceImpl implements DashboardService {
         Map<Long, List<Score>> byStudent = scores.stream()
                 .collect(Collectors.groupingBy(Score::getStudentId));
 
-        // 批量加载学生信息
         Set<Long> studentIds = byStudent.keySet();
         List<StudentInfo> studentInfos = studentInfoMapper.selectBatchIds(new ArrayList<>(studentIds));
         Map<Long, StudentInfo> siMap = studentInfos.stream()
                 .collect(Collectors.toMap(StudentInfo::getId, Function.identity()));
 
-        // 批量加载用户信息
         Set<Long> userIds = studentInfos.stream().map(StudentInfo::getUserId).collect(Collectors.toSet());
         List<SysUser> users = userMapper.selectBatchIds(new ArrayList<>(userIds));
         Map<Long, SysUser> userMap = users.stream()
                 .collect(Collectors.toMap(SysUser::getId, Function.identity()));
 
-        // 批量加载班级信息
         Set<Long> classIds = studentInfos.stream().map(StudentInfo::getClassId).filter(Objects::nonNull).collect(Collectors.toSet());
         List<SysClass> classes = classIds.isEmpty() ? List.of() : classMapper.selectBatchIds(new ArrayList<>(classIds));
         Map<Long, SysClass> classMap = classes.stream()
                 .collect(Collectors.toMap(SysClass::getId, Function.identity()));
 
+        String kw = keyword != null ? keyword.trim().toLowerCase() : null;
         return byStudent.entrySet().stream().map(entry -> {
             Long sid = entry.getKey();
             List<Score> scoreList = entry.getValue();
@@ -76,6 +75,25 @@ public class DashboardServiceImpl implements DashboardService {
             r.setStudentName(user != null ? user.getRealName() : "未知");
             r.setClassName(cls != null ? cls.getClassName() : "");
             r.setAvgScore(BigDecimal.valueOf(Math.round(avg * 10) / 10.0));
+            r.setScoreCount(scoreList.size());
+            return r;
+        }).filter(r -> {
+            if (kw == null || kw.isEmpty()) return true;
+            return (r.getStudentNo() != null && r.getStudentNo().toLowerCase().contains(kw))
+                || (r.getStudentName() != null && r.getStudentName().toLowerCase().contains(kw));
+        }).toList();
+    }
+
+    @Override
+    public List<TeacherCourseResp> getTeacherCourses(Long userId) {
+        List<Course> courses = courseMapper.selectList(
+                new LambdaQueryWrapper<Course>().eq(Course::getTeacherId, userId));
+        return courses.stream().map(c -> {
+            TeacherCourseResp r = new TeacherCourseResp();
+            r.setId(c.getId());
+            r.setCourseName(c.getCourseName());
+            r.setSubject(c.getSubject());
+            r.setSemester(c.getSemester());
             return r;
         }).toList();
     }

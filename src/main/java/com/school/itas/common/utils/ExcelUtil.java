@@ -17,12 +17,25 @@ public class ExcelUtil {
         List<T> result = new ArrayList<>();
         try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
             Sheet sheet = workbook.getSheetAt(0);
-            // 跳过表头行
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
                 if (row == null) continue;
                 T item = rowMapper.apply(row);
                 if (item != null) result.add(item);
+            }
+        } catch (IOException e) {
+            throw new BusinessException("Excel文件解析失败: " + e.getMessage());
+        }
+        return result;
+    }
+
+    public static List<Row> readExcelRaw(MultipartFile file) {
+        List<Row> result = new ArrayList<>();
+        try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
+            Sheet sheet = workbook.getSheetAt(0);
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                Row row = sheet.getRow(i);
+                if (row != null) result.add(row);
             }
         } catch (IOException e) {
             throw new BusinessException("Excel文件解析失败: " + e.getMessage());

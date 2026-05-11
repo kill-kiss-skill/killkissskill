@@ -2,6 +2,7 @@ package com.school.itas.controller;
 
 import com.school.itas.common.domain.Result;
 import com.school.itas.model.req.ScoreReq;
+import com.school.itas.model.resp.ImportResultResp;
 import com.school.itas.model.resp.ScoreAnalysisResp;
 import com.school.itas.model.resp.ScoreResp;
 import com.school.itas.service.LearningService;
@@ -35,7 +36,7 @@ public class ScoreController {
     @Operation(summary = "Excel批量导入成绩")
     @PostMapping("/import")
     @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
-    public Result<String> importScores(
+    public Result<ImportResultResp> importScores(
             @RequestParam MultipartFile file,
             @RequestParam Long courseId,
             @RequestParam String semester,

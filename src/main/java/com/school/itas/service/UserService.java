@@ -19,7 +19,7 @@ public interface UserService {
 
     void updateStatus(Long userId, Integer status);
 
-    List<UserInfoResp> listUsers(Integer role, Integer page, Integer size);
+    List<UserInfoResp> listUsers(Integer role, String keyword, Integer page, Integer size);
 
     void updatePassword(Long userId, UpdatePasswordReq req);
 

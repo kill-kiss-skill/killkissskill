@@ -14,7 +14,12 @@
       "Bash(cd \"E:\\\\\\\\t\\\\\\\\桌面\\\\\\\\毕业设计\\\\\\\\毕设项目代码\\\\\\\\itas-frontend\")",
       "Bash(node *)",
       "Bash(npm install *)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(powershell *)",
+      "Bash(antiword -m CP936 \"E:/t/桌面/毕业设计/滕建宏-202207034221.中期检查.doc\")",
+      "Bash(antiword \"E:/t/桌面/毕业设计/滕建宏-202207034221.中期检查.doc\")",
+      "Bash(dir /b \"E:\\\\t\\\\桌面\\\\毕业设计\\\\毕设项目代码\\\\itas-backend\")",
+      "Bash(dir /b \"E:\\\\t\\\\桌面\\\\毕业设计\\\\毕设项目代码\\\\itas-frontend\")"
     ]
   }
 }

@@ -81,13 +81,25 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     }
 
     @Override
-    public List<KnowledgeDocument> listDocuments(String subject, Integer page, Integer size) {
+    public List<KnowledgeDocument> listDocuments(String subject, String keyword, Integer page, Integer size) {
         LambdaQueryWrapper<KnowledgeDocument> wrapper = new LambdaQueryWrapper<>();
         if (subject != null && !subject.isBlank()) {
             wrapper.eq(KnowledgeDocument::getSubject, subject);
         }
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            wrapper.like(KnowledgeDocument::getTitle, keyword);
+        }
         wrapper.orderByDesc(KnowledgeDocument::getCreatedAt);
         return docMapper.selectList(wrapper);
+    }
+
+    @Override
+    public void updateDocument(Long docId, String title, String subject) {
+        KnowledgeDocument doc = docMapper.selectById(docId);
+        if (doc == null) throw new BusinessException(404, "文档不存在");
+        if (title != null && !title.isBlank()) doc.setTitle(title);
+        if (subject != null && !subject.isBlank()) doc.setSubject(subject);
+        docMapper.updateById(doc);
     }
 
     @Override

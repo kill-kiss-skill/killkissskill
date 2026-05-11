@@ -10,9 +10,11 @@ public interface KnowledgeService {
 
     KnowledgeDocument uploadDocument(Long uploaderId, KnowledgeDocReq req, MultipartFile file);
 
-    List<KnowledgeDocument> listDocuments(String subject, Integer page, Integer size);
+    List<KnowledgeDocument> listDocuments(String subject, String keyword, Integer page, Integer size);
 
     void deleteDocument(Long docId);
+
+    void updateDocument(Long docId, String title, String subject);
 
     void vectorizeDocument(Long docId);
 }

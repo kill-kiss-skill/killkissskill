@@ -10,16 +10,17 @@ public interface SystemService {
     // 院系
     List<SysDepartment> listDepartments();
     SysDepartment createDepartment(String name);
+    SysDepartment updateDepartment(Long id, String name);
     void deleteDepartment(Long id);
 
     // 班级
-    List<SysClass> listClasses();
+    List<SysClass> listClasses(String keyword, Long departmentId);
     SysClass createClass(String className, Long departmentId, Integer grade, Long teacherId);
     SysClass updateClass(Long id, String className, Long departmentId, Integer grade, Long teacherId);
     void deleteClass(Long id);
 
     // 课程
-    List<Course> listCourses();
+    List<Course> listCourses(String keyword, Long teacherId);
     Course createCourse(String courseCode, String courseName, String subject, Long teacherId, String semester, Long classId);
     Course updateCourse(Long id, String courseCode, String courseName, String subject, Long teacherId, String semester, Long classId);
     void deleteCourse(Long id);

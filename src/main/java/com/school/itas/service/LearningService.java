@@ -2,6 +2,7 @@ package com.school.itas.service;
 
 import com.school.itas.entity.LearningPlan;
 import com.school.itas.model.req.ScoreReq;
+import com.school.itas.model.resp.ImportResultResp;
 import com.school.itas.model.resp.LearningPlanResp;
 import com.school.itas.model.resp.ScoreAnalysisResp;
 import com.school.itas.model.resp.ScoreResp;
@@ -27,5 +28,5 @@ public interface LearningService {
 
     void deleteScore(Long scoreId);
 
-    String importScores(MultipartFile file, Long courseId, String semester, Long operatorId);
+    ImportResultResp importScores(MultipartFile file, Long courseId, String semester, Long operatorId);
 }

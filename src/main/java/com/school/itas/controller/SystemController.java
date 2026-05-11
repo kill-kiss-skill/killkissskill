@@ -33,6 +33,12 @@ public class SystemController {
         return Result.ok(systemService.createDepartment(name));
     }
 
+    @Operation(summary = "编辑院系")
+    @PutMapping("/department/{id}")
+    public Result<SysDepartment> updateDepartment(@PathVariable Long id, @RequestParam String name) {
+        return Result.ok(systemService.updateDepartment(id, name));
+    }
+
     @Operation(summary = "删除院系")
     @DeleteMapping("/department/{id}")
     public Result<Void> deleteDepartment(@PathVariable Long id) {
@@ -42,8 +48,10 @@ public class SystemController {
 
     @Operation(summary = "班级列表")
     @GetMapping("/classes")
-    public Result<List<SysClass>> listClasses() {
-        return Result.ok(systemService.listClasses());
+    public Result<List<SysClass>> listClasses(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long departmentId) {
+        return Result.ok(systemService.listClasses(keyword, departmentId));
     }
 
     @Operation(summary = "新增班级")
@@ -74,8 +82,10 @@ public class SystemController {
 
     @Operation(summary = "课程列表")
     @GetMapping("/courses")
-    public Result<List<Course>> listCourses() {
-        return Result.ok(systemService.listCourses());
+    public Result<List<Course>> listCourses(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long teacherId) {
+        return Result.ok(systemService.listCourses(keyword, teacherId));
     }
 
     @Operation(summary = "新增课程")

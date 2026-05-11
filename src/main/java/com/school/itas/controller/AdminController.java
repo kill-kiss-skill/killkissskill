@@ -33,9 +33,10 @@ public class AdminController {
     @GetMapping("/users")
     public Result<List<UserInfoResp>> listUsers(
             @RequestParam(required = false) Integer role,
+            @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "20") Integer size) {
-        return Result.ok(userService.listUsers(role, page, size));
+        return Result.ok(userService.listUsers(role, keyword, page, size));
     }
 
     @Operation(summary = "启用/禁用用户")

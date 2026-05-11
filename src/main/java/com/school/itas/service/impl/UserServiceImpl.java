@@ -115,9 +115,14 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<UserInfoResp> listUsers(Integer role, Integer page, Integer size) {
+    public List<UserInfoResp> listUsers(Integer role, String keyword, Integer page, Integer size) {
         LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
         if (role != null) wrapper.eq(SysUser::getRole, role);
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            wrapper.and(w -> w.like(SysUser::getUsername, keyword)
+                .or().like(SysUser::getRealName, keyword)
+                .or().like(SysUser::getEmail, keyword));
+        }
         wrapper.orderByDesc(SysUser::getCreatedAt);
         Page<SysUser> p = userMapper.selectPage(new Page<>(page, size), wrapper);
         return p.getRecords().stream().map(this::toResp).toList();
