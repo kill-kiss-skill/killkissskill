@@ -149,34 +149,7 @@ public class LearningServiceImpl implements LearningService {
                 new LambdaQueryWrapper<LearningPlan>()
                         .eq(LearningPlan::getStudentId, studentId)
                         .orderByDesc(LearningPlan::getCreatedAt));
-        return plans.stream().map(plan -> {
-            LearningPlanResp resp = new LearningPlanResp();
-            resp.setId(plan.getId());
-            resp.setStudentId(plan.getStudentId());
-            resp.setPlanTitle(plan.getPlanTitle());
-            resp.setContent(plan.getContent());
-            resp.setWeakSubjects(plan.getWeakSubjects());
-            resp.setSemester(plan.getSemester());
-            resp.setGeneratedBy(plan.getGeneratedBy());
-            resp.setStatus(plan.getStatus());
-            resp.setCreatedAt(plan.getCreatedAt());
-            List<LearningPlanItem> items = planItemMapper.selectList(
-                    new LambdaQueryWrapper<LearningPlanItem>()
-                            .eq(LearningPlanItem::getPlanId, plan.getId())
-                            .orderByAsc(LearningPlanItem::getPriority));
-            resp.setItems(items.stream().map(item -> {
-                LearningPlanResp.PlanItemResp ir = new LearningPlanResp.PlanItemResp();
-                ir.setId(item.getId());
-                ir.setSubject(item.getSubject());
-                ir.setTaskDesc(item.getTaskDesc());
-                ir.setResourceUrl(item.getResourceUrl());
-                ir.setPriority(item.getPriority());
-                ir.setStatus(item.getStatus());
-                ir.setDueDate(item.getDueDate());
-                return ir;
-            }).toList());
-            return resp;
-        }).toList();
+        return plans.stream().map(this::toPlanResp).toList();
     }
 
     @Override
@@ -425,6 +398,21 @@ public class LearningServiceImpl implements LearningService {
     }
 
     @Override
+    public LearningPlanResp getPlanById(Long planId) {
+        LearningPlan plan = planMapper.selectById(planId);
+        if (plan == null) throw new BusinessException(404, "学习计划不存在");
+        return toPlanResp(plan);
+    }
+
+    @Override
+    @Transactional
+    public void deletePlan(Long planId) {
+        planItemMapper.delete(new LambdaQueryWrapper<LearningPlanItem>()
+                .eq(LearningPlanItem::getPlanId, planId));
+        planMapper.deleteById(planId);
+    }
+
+    @Override
     @Transactional
     public void deleteScore(Long scoreId) {
         Score score = scoreMapper.selectById(scoreId);
@@ -450,6 +438,35 @@ public class LearningServiceImpl implements LearningService {
         if (v >= 70) return "C";
         if (v >= 60) return "D";
         return "F";
+    }
+
+    private LearningPlanResp toPlanResp(LearningPlan plan) {
+        LearningPlanResp resp = new LearningPlanResp();
+        resp.setId(plan.getId());
+        resp.setStudentId(plan.getStudentId());
+        resp.setPlanTitle(plan.getPlanTitle());
+        resp.setContent(plan.getContent());
+        resp.setWeakSubjects(plan.getWeakSubjects());
+        resp.setSemester(plan.getSemester());
+        resp.setGeneratedBy(plan.getGeneratedBy());
+        resp.setStatus(plan.getStatus());
+        resp.setCreatedAt(plan.getCreatedAt());
+        List<LearningPlanItem> items = planItemMapper.selectList(
+                new LambdaQueryWrapper<LearningPlanItem>()
+                        .eq(LearningPlanItem::getPlanId, plan.getId())
+                        .orderByAsc(LearningPlanItem::getPriority));
+        resp.setItems(items.stream().map(item -> {
+            LearningPlanResp.PlanItemResp ir = new LearningPlanResp.PlanItemResp();
+            ir.setId(item.getId());
+            ir.setSubject(item.getSubject());
+            ir.setTaskDesc(item.getTaskDesc());
+            ir.setResourceUrl(item.getResourceUrl());
+            ir.setPriority(item.getPriority());
+            ir.setStatus(item.getStatus());
+            ir.setDueDate(item.getDueDate());
+            return ir;
+        }).toList());
+        return resp;
     }
 
     private String str(Object o) { return o != null ? o.toString() : null; }

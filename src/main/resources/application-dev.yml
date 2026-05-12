@@ -21,6 +21,8 @@ spring:
       # 生产环境请通过环境变量 DEEPSEEK_API_KEY 覆盖此默认值
       api-key: ${DEEPSEEK_API_KEY:sk-d09954571be14961a872eae8f1a69e1f}
       base-url: https://api.deepseek.com
+      connect-timeout: 30s
+      read-timeout: 120s
       chat:
         options:
           model: deepseek-v4-pro
@@ -53,7 +55,7 @@ milvus:
   # 生产环境请通过环境变量 MILVUS_TOKEN 覆盖此默认值
   token: ${MILVUS_TOKEN:0691025447236d41d5e23ee4054f796248a4168ad63bebbbbd820dbb11ac9137e572470240b6cd899080272e824b6a190fabc51b}
   collection-name: knowledge_vectors
-  dimension: 1536
+  dimension: 2048
 
 itas:
   jwt:

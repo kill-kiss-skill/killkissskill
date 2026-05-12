@@ -31,6 +31,10 @@ public interface LearningService {
 
     void deleteScore(Long scoreId);
 
+    void deletePlan(Long planId);
+
+    LearningPlanResp getPlanById(Long planId);
+
     ImportResultResp importScores(MultipartFile file, Long courseId, String semester, Long operatorId);
 
     byte[] generateTemplate();

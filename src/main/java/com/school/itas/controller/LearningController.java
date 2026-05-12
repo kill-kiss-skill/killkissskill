@@ -75,6 +75,21 @@ public class LearningController {
         return Result.ok();
     }
 
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "获取学习计划详情")
+    @GetMapping("/plan/{planId}")
+    public Result<LearningPlanResp> planDetail(@PathVariable Long planId) {
+        return Result.ok(learningService.getPlanById(planId));
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "删除学习计划")
+    @DeleteMapping("/plan/{planId}")
+    public Result<Void> deletePlan(@PathVariable Long planId) {
+        learningService.deletePlan(planId);
+        return Result.ok();
+    }
+
     @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     @Operation(summary = "录入成绩（教师）")
     @PostMapping("/score")

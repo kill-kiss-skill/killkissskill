@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import jakarta.annotation.PostConstruct;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -43,6 +44,16 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     @Value("${milvus.collection-name}")
     private String collectionName;
 
+    @PostConstruct
+    public void init() {
+        File dir = new File(uploadPath);
+        if (!dir.isAbsolute()) {
+            dir = new File(System.getProperty("user.dir"), uploadPath);
+        }
+        dir.mkdirs();
+        this.uploadPath = dir.getAbsoluteFile().toPath().normalize().toString() + File.separator;
+    }
+
     @Override
     @Transactional
     public KnowledgeDocument uploadDocument(Long uploaderId, KnowledgeDocReq req, MultipartFile file) {
@@ -50,7 +61,6 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
         String filePath = uploadPath + fileName;
         File dest = new File(filePath);
-        dest.getParentFile().mkdirs();
         try {
             file.transferTo(dest);
         } catch (IOException e) {
@@ -167,6 +177,9 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                         .withFields(fields)
                         .build();
                 var insertResp = milvusServiceClient.insert(insertParam);
+                if (insertResp.getStatus() != 0 || insertResp.getData() == null) {
+                    throw new BusinessException("Milvus写入失败: " + insertResp.getMessage());
+                }
 
                 // 回写 milvus_id 到 MySQL chunk 表
                 List<Long> milvusIds = insertResp.getData().getIDs().getIntId().getDataList();
