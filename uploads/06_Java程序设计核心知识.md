@@ -1,0 +1,69 @@
+# Java程序设计核心知识
+
+## 一、Java语言基础
+
+Java是Sun Microsystems公司于1995年发布的面向对象编程语言。Java的设计目标：简单性、面向对象、分布式、健壮性、安全性、体系结构中立、可移植性、解释执行、高性能、多线程和动态性。
+
+Java运行机制：源代码（.java）经编译器（javac）编译为字节码（.class），再由JVM（Java虚拟机）解释执行或JIT即时编译为本地机器码。这种"一次编写、到处运行"的特性是Java跨平台的基础。
+
+JVM内存区域：方法区（存储类信息、常量、静态变量）、堆（对象实例和数组，GC管理的主区域）、虚拟机栈（线程私有，存储局部变量表、操作数栈等）、本地方法栈、程序计数器。
+
+## 二、面向对象编程
+
+面向对象的三大特征：封装、继承、多态。
+
+封装隐藏对象的内部状态和行为实现细节，仅对外暴露公开接口。通过访问修饰符实现：private（本类可见）、default（同包可见）、protected（同包和子类可见）、public（全局可见）。
+
+继承允许一个类（子类）继承另一个类（父类）的属性和方法。Java是单继承（一个类只能有一个直接父类），但可以通过接口实现多继承效果。子类使用extends关键字继承父类，通过super调用父类构造器和方法。
+
+多态是指同一操作作用于不同对象表现出不同行为。重载（编译时多态）：同方法名，参数列表不同；重写（运行时多态）：子类重写父类方法，通过父类引用指向子类对象实现动态绑定。
+
+抽象类（abstract）可以有抽象方法（无方法体）和具体方法，不能被实例化，必须被子类继承并实现其抽象方法。接口（interface）在Java 8后可以包含默认方法和静态方法，接口的方法默认是public abstract。
+
+内部类定义在另一个类内部的类。静态内部类不持有外部类引用；成员内部类持有外部类引用；局部内部类定义在方法内；匿名内部类通常用于简化接口实现。
+
+## 三、异常处理
+
+Java异常体系：Throwable是所有异常和错误的根类。Error表示JVM无法处理的严重问题（如OutOfMemoryError、StackOverflowError），不应被捕获。Exception分为检查异常（Checked Exception，编译时强制处理，如IOException、SQLException）和非检查异常（Unchecked Exception，运行时异常，如NullPointerException、IndexOutOfBoundsException）。
+
+异常处理机制：try块包含可能抛出异常的代码；catch块捕获并处理特定类型的异常（可多个，按子类到父类顺序）；finally块无论是否发生异常都会执行（通常用于释放资源）。try-with-resources（Java 7+）自动关闭实现了AutoCloseable接口的资源。
+
+自定义异常：继承Exception（检查异常）或RuntimeException（非检查异常），提供构造器以设置异常消息。
+
+## 四、集合框架
+
+Java集合框架提供了一套统一的数据结构接口和实现。
+
+Collection接口：List（有序、可重复，ArrayList基于数组、LinkedList基于双向链表、Vector线程安全）、Set（无序、不可重复，HashSet基于HashMap、TreeSet基于TreeMap实现排序）、Queue（队列，LinkedList实现了Deque双端队列、PriorityQueue优先队列）。
+
+Map接口：HashMap（基于哈希表，允许null键值，非线程安全）、LinkedHashMap（维护插入顺序）、TreeMap（基于红黑树，按键排序）、ConcurrentHashMap（线程安全的HashMap，分段锁机制）、Hashtable（遗留类，线程安全但不推荐使用）。
+
+HashMap原理：JDK 8中，HashMap由数组+链表+红黑树实现。通过key的hashCode计算桶索引，哈希冲突时使用链地址法。当链表长度超过8且数组长度≥64时，链表转为红黑树以提高查询效率。默认初始容量16，负载因子0.75，扩容时容量翻倍。
+
+排序接口：Comparable（自然排序，实现compareTo方法）和Comparator（定制排序，实现compare方法）。
+
+## 五、多线程与并发
+
+创建线程的方式：继承Thread类并重写run方法；实现Runnable接口；实现Callable接口（有返回值，配合Future使用）；使用线程池（ExecutorService）。
+
+线程的生命周期：NEW（新建）→ RUNNABLE（就绪+运行）→ BLOCKED（阻塞）→ WAITING（无限等待）→ TIMED_WAITING（计时等待）→ TERMINATED（终止）。
+
+synchronized关键字：修饰实例方法锁定this对象；修饰静态方法锁定类的Class对象；修饰代码块锁定指定对象。synchronized是可重入锁。
+
+volatile关键字保证变量对所有线程的可见性，禁止指令重排序，但不保证原子性。
+
+Lock接口（java.util.concurrent.locks）提供比synchronized更灵活的锁操作。ReentrantLock是可重入的排他锁，支持公平锁、可中断获取锁、超时获取锁。ReadWriteLock分离读锁（共享）和写锁（排他），适合读多写少场景。
+
+线程池（Executor框架）：Executors工厂类创建线程池。newFixedThreadPool创建固定大小线程池；newCachedThreadPool创建可缓存线程池；newSingleThreadExecutor创建单线程池；newScheduledThreadPool支持定时和周期任务。实际开发推荐使用ThreadPoolExecutor直接指定参数，避免Executors可能的OOM风险。
+
+ThreadPoolExecutor核心参数：corePoolSize（核心线程数）、maximumPoolSize（最大线程数）、keepAliveTime（空闲线程存活时间）、workQueue（任务队列）、threadFactory（线程工厂）、rejectedExecutionHandler（拒绝策略）。
+
+## 六、Java新特性
+
+Java 8核心新特性：Lambda表达式（(参数) -> {函数体}）、函数式接口（@FunctionalInterface，如Predicate、Function、Consumer、Supplier）、Stream API（流式操作，filter-map-reduce模式，惰性求值）、Optional类（避免null检查）、新的日期时间API（LocalDate、LocalTime、LocalDateTime、Duration、Period）。
+
+Stream操作分为中间操作（filter过滤、map映射、sorted排序、distinct去重、limit截取、skip跳过）和终端操作（forEach遍历、collect收集、reduce归约、count计数、anyMatch/allMatch/noneMatch匹配、findFirst/findAny查找）。
+
+方法引用：静态方法引用（ClassName::staticMethod）、实例方法引用（instance::method）、特定类型的任意对象方法引用（ClassName::method）、构造器引用（ClassName::new）。
+
+Java 9-17演进：模块化系统（Java 9）、var局部变量类型推断（Java 10）、switch表达式和文本块（Java 14/13）、record记录类（Java 14/16，不可变数据载体）、sealed密封类（Java 17，限制哪些类可以继承）、Pattern Matching模式匹配（Java 17 preview）。

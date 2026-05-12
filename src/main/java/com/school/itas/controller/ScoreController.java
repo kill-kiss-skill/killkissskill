@@ -61,12 +61,21 @@ public class ScoreController {
     }
 
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "查询学生成绩")
+    @Operation(summary = "查询学生成绩（学生自查看，studentId=sys_user.id）")
     @GetMapping("/student/{studentId}")
     public Result<List<ScoreResp>> studentScores(
             @PathVariable Long studentId,
             @RequestParam(required = false) String semester) {
         return Result.ok(learningService.getStudentScores(studentId, semester));
+    }
+
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
+    @Operation(summary = "教师查询学生成绩（studentInfoId=student_info.id）")
+    @GetMapping("/teacher/student/{studentInfoId}")
+    public Result<List<ScoreResp>> teacherStudentScores(
+            @PathVariable Long studentInfoId,
+            @RequestParam(required = false) String semester) {
+        return Result.ok(learningService.getStudentScoresByStudentInfoId(studentInfoId, semester));
     }
 
     @PreAuthorize("isAuthenticated()")

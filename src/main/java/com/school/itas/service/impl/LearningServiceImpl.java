@@ -17,6 +17,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
@@ -36,11 +40,18 @@ public class LearningServiceImpl implements LearningService {
 
     @Override
     public List<ScoreResp> getStudentScores(Long studentId, String semester) {
-        // studentId may be sys_user.id (from student self-view) or student_info.id (from teacher view)
         StudentInfo si = studentInfoMapper.selectOne(
                 new LambdaQueryWrapper<StudentInfo>().eq(StudentInfo::getUserId, studentId));
         Long scoreStudentId = si != null ? si.getId() : studentId;
-        List<Map<String, Object>> details = scoreMapper.selectScoreDetailByStudent(scoreStudentId, semester);
+        return mapScoreDetails(scoreMapper.selectScoreDetailByStudent(scoreStudentId, semester));
+    }
+
+    @Override
+    public List<ScoreResp> getStudentScoresByStudentInfoId(Long studentInfoId, String semester) {
+        return mapScoreDetails(scoreMapper.selectScoreDetailByStudent(studentInfoId, semester));
+    }
+
+    private List<ScoreResp> mapScoreDetails(List<Map<String, Object>> details) {
         return details.stream().map(row -> {
             ScoreResp r = new ScoreResp();
             r.setId(toLong(row.get("id")));
@@ -228,12 +239,54 @@ public class LearningServiceImpl implements LearningService {
         List<ScoreReq> rows = new ArrayList<>();
         List<ImportResultResp.ImportError> parseErrors = new ArrayList<>();
 
-        List<org.apache.poi.ss.usermodel.Row> rawRows = ExcelUtil.readExcelRaw(file);
-        for (int i = 0; i < rawRows.size(); i++) {
-            org.apache.poi.ss.usermodel.Row row = rawRows.get(i);
-            int excelRow = i + 2; // Excel行号（第1行是表头）
-            String studentNo = ExcelUtil.getCellString(row, 0);
-            String studentName = ExcelUtil.getCellString(row, 1);
+        // 解析整个 Excel 文件（含表头）
+        List<org.apache.poi.ss.usermodel.Row> allRows;
+        try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
+            Sheet sheet = workbook.getSheetAt(0);
+            allRows = new ArrayList<>();
+            for (int i = 0; i <= sheet.getLastRowNum(); i++) {
+                org.apache.poi.ss.usermodel.Row row = sheet.getRow(i);
+                if (row != null) allRows.add(row);
+            }
+        } catch (Exception e) {
+            parseErrors.add(new ImportResultResp.ImportError(0, "文件解析失败: " + e.getMessage()));
+            return buildImportResult(batch, batchNo, 0, parseErrors);
+        }
+
+        if (allRows.isEmpty()) {
+            parseErrors.add(new ImportResultResp.ImportError(0, "文件为空或无法读取"));
+            return buildImportResult(batch, batchNo, 0, parseErrors);
+        }
+
+        // 解析表头，建立列名→列索引映射
+        org.apache.poi.ss.usermodel.Row headerRow = allRows.get(0);
+        Map<String, Integer> colMap = new LinkedHashMap<>();
+        for (int c = 0; c < headerRow.getLastCellNum(); c++) {
+            String h = ExcelUtil.getCellString(headerRow, c);
+            if (h != null) colMap.put(h.trim(), c);
+        }
+
+        // 校验必要列
+        if (!colMap.containsKey("学号") && !colMap.containsKey("期末分")) {
+            parseErrors.add(new ImportResultResp.ImportError(0,
+                "表头缺少必要列，需要包含：学号、期末分，可选：姓名、平时分、期中分。" +
+                "当前表头：" + String.join("、", colMap.keySet())));
+            return buildImportResult(batch, batchNo, 0, parseErrors);
+        }
+
+        // 如果表头不含"学号"则无法继续
+        Integer colStudentNo = colMap.get("学号");
+        Integer colStudentName = colMap.get("姓名");
+        Integer colUsual = colMap.get("平时分");
+        Integer colMid = colMap.get("期中分");
+        Integer colFinal = colMap.get("期末分");
+
+        for (int i = 1; i < allRows.size(); i++) {
+            org.apache.poi.ss.usermodel.Row row = allRows.get(i);
+            int excelRow = i + 1; // Excel行号（第1行是表头）
+
+            String studentNo = colStudentNo != null ? ExcelUtil.getCellString(row, colStudentNo) : null;
+            String studentName = colStudentName != null ? ExcelUtil.getCellString(row, colStudentName) : null;
             if (studentNo == null && studentName == null) continue;
 
             // 先按学号查找，失败则按姓名查找
@@ -243,7 +296,6 @@ public class LearningServiceImpl implements LearningService {
                         new LambdaQueryWrapper<StudentInfo>().eq(StudentInfo::getStudentNo, studentNo));
             }
             if (si == null && studentName != null) {
-                // 按姓名匹配：通过 sys_user.real_name 查找
                 List<SysUser> byName = userMapper.selectList(
                         new LambdaQueryWrapper<SysUser>().eq(SysUser::getRealName, studentName));
                 if (byName.size() == 1) {
@@ -262,29 +314,40 @@ public class LearningServiceImpl implements LearningService {
             ScoreReq req = new ScoreReq();
             req.setStudentId(si.getId());
             req.setCourseId(courseId);
-            // 列C=平时分(列2), 列D=期中分(列3), 列E=期末分(列4)（如有列B姓名则列偏移+1）
-            int colOffset = studentName != null ? 1 : 0;
-            req.setUsualScore(ExcelUtil.getCellDecimal(row, 1 + colOffset));
-            req.setMidScore(ExcelUtil.getCellDecimal(row, 2 + colOffset));
-            req.setFinalScore(ExcelUtil.getCellDecimal(row, 3 + colOffset));
+            req.setUsualScore(colUsual != null ? ExcelUtil.getCellDecimal(row, colUsual) : null);
+            req.setMidScore(colMid != null ? ExcelUtil.getCellDecimal(row, colMid) : null);
+            req.setFinalScore(colFinal != null ? ExcelUtil.getCellDecimal(row, colFinal) : null);
             req.setSemester(semester);
             rows.add(req);
         }
 
+        return buildImportResult(batch, batchNo, rows.size(), parseErrors, rows, operatorId);
+    }
+
+    private ImportResultResp buildImportResult(ScoreImportBatch batch, String batchNo,
+                                                int totalCount, List<ImportResultResp.ImportError> parseErrors) {
+        return buildImportResult(batch, batchNo, totalCount, parseErrors, List.of(), null);
+    }
+
+    private ImportResultResp buildImportResult(ScoreImportBatch batch, String batchNo,
+                                                int totalRows, List<ImportResultResp.ImportError> parseErrors,
+                                                List<ScoreReq> rows, Long operatorId) {
         ImportResultResp result = new ImportResultResp();
         result.setBatchNo(batchNo);
-        result.setTotalRows(rows.size() + parseErrors.size());
+        result.setTotalRows(totalRows + parseErrors.size());
         int success = 0, fail = 0;
         List<ImportResultResp.ImportError> allErrors = new ArrayList<>(parseErrors);
 
-        for (int i = 0; i < rows.size(); i++) {
-            ScoreReq req = rows.get(i);
-            try {
-                saveScore(req, operatorId);
-                success++;
-            } catch (Exception e) {
-                fail++;
-                allErrors.add(new ImportResultResp.ImportError(i + 2, e.getMessage()));
+        if (operatorId != null) {
+            for (int i = 0; i < rows.size(); i++) {
+                ScoreReq req = rows.get(i);
+                try {
+                    saveScore(req, operatorId);
+                    success++;
+                } catch (Exception e) {
+                    fail++;
+                    allErrors.add(new ImportResultResp.ImportError(i + 2, e.getMessage()));
+                }
             }
         }
 
@@ -299,6 +362,50 @@ public class LearningServiceImpl implements LearningService {
         batchMapper.updateById(batch);
 
         return result;
+    }
+
+    @Override
+    public byte[] generateTemplate() {
+        try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("成绩导入模板");
+            // 表头样式
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerFont.setFontHeightInPoints((short) 11);
+            headerStyle.setFont(headerFont);
+            headerStyle.setFillForegroundColor(IndexedColors.LIGHT_CORNFLOWER_BLUE.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            headerStyle.setBorderBottom(BorderStyle.THIN);
+            headerStyle.setAlignment(HorizontalAlignment.CENTER);
+
+            // 表头行
+            String[] headers = {"学号", "姓名", "平时分", "期中分", "期末分"};
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+                sheet.setColumnWidth(i, 16 * 256); // 约16字符宽
+            }
+
+            // 示例数据行
+            String[][] examples = {
+                {"202207034221", "张三", "85", "78", "82"},
+                {"202407034101", "李四", "90", "88", "95"},
+            };
+            for (int r = 0; r < examples.length; r++) {
+                Row row = sheet.createRow(r + 1);
+                for (int c = 0; c < examples[r].length; c++) {
+                    row.createCell(c).setCellValue(examples[r][c]);
+                }
+            }
+
+            workbook.write(bos);
+            return bos.toByteArray();
+        } catch (Exception e) {
+            throw new BusinessException("生成模板失败: " + e.getMessage());
+        }
     }
 
     @Override

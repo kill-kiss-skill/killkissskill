@@ -14,6 +14,9 @@ public interface LearningService {
 
     List<ScoreResp> getStudentScores(Long studentId, String semester);
 
+    /** 教师端查询学生成绩，studentInfoId 为 student_info.id，不做 sys_user 映射 */
+    List<ScoreResp> getStudentScoresByStudentInfoId(Long studentInfoId, String semester);
+
     ScoreAnalysisResp analyzeScore(Long studentId);
 
     LearningPlan generatePlan(Long studentId);
@@ -29,4 +32,6 @@ public interface LearningService {
     void deleteScore(Long scoreId);
 
     ImportResultResp importScores(MultipartFile file, Long courseId, String semester, Long operatorId);
+
+    byte[] generateTemplate();
 }
