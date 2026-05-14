@@ -1,7 +1,11 @@
 package com.school.itas.rag.embedding;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.ai.embedding.Embedding;
+import org.springframework.ai.embedding.EmbeddingRequest;
+import org.springframework.ai.embedding.EmbeddingResponse;
 import org.springframework.ai.openai.OpenAiEmbeddingModel;
+import org.springframework.ai.openai.OpenAiEmbeddingOptions;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -18,6 +22,12 @@ public class EmbeddingService {
     }
 
     public List<float[]> embedBatch(List<String> texts) {
-        return texts.stream().map(this::embed).toList();
+        if (texts.isEmpty()) return List.of();
+        EmbeddingRequest request = new EmbeddingRequest(texts,
+                OpenAiEmbeddingOptions.builder().build());
+        EmbeddingResponse response = embeddingModel.call(request);
+        return response.getResults().stream()
+                .map(Embedding::getOutput)
+                .toList();
     }
 }

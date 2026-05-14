@@ -2,7 +2,9 @@ package com.school.itas.controller;
 
 import com.school.itas.common.domain.Result;
 import com.school.itas.entity.KnowledgeDocument;
+import com.school.itas.entity.KnowledgeImportTask;
 import com.school.itas.model.req.KnowledgeDocReq;
+import com.school.itas.model.resp.ImportProgressResp;
 import com.school.itas.service.KnowledgeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -12,6 +14,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @Tag(name = "知识库管理")
@@ -72,5 +75,35 @@ public class KnowledgeController {
     public Result<Void> vectorize(@PathVariable Long docId) {
         knowledgeService.vectorizeDocument(docId);
         return Result.ok();
+    }
+
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
+    @Operation(summary = "批量导入知识库数据（JSONL格式）")
+    @PostMapping("/import/batch")
+    public Result<ImportProgressResp> batchImport(
+            @RequestParam String datasetName,
+            @RequestParam(required = false) String subject,
+            @RequestParam MultipartFile file,
+            Authentication auth) throws IOException {
+        Long operatorId = (Long) auth.getPrincipal();
+        ImportProgressResp resp = knowledgeService.batchImport(
+                file.getInputStream(), datasetName, subject, operatorId);
+        return Result.ok(resp);
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "查询导入任务进度")
+    @GetMapping("/import/task/{batchNo}")
+    public Result<ImportProgressResp> getImportTask(@PathVariable String batchNo) {
+        return Result.ok(knowledgeService.getImportTask(batchNo));
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "历史导入任务列表")
+    @GetMapping("/import/tasks")
+    public Result<List<KnowledgeImportTask>> listImportTasks(
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "20") Integer size) {
+        return Result.ok(knowledgeService.listImportTasks(page, size));
     }
 }

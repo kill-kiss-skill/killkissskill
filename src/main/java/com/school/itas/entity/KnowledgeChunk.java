@@ -16,6 +16,8 @@ public class KnowledgeChunk {
     private String content;
     private Integer tokenCount;
     private Long milvusId;
+    private String contentHash;
+    private String source;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;

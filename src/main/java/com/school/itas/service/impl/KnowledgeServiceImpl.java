@@ -4,9 +4,11 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.school.itas.common.exception.BusinessException;
 import com.school.itas.entity.KnowledgeChunk;
 import com.school.itas.entity.KnowledgeDocument;
+import com.school.itas.entity.KnowledgeImportTask;
 import com.school.itas.mapper.KnowledgeChunkMapper;
 import com.school.itas.mapper.KnowledgeDocumentMapper;
 import com.school.itas.model.req.KnowledgeDocReq;
+import com.school.itas.model.resp.ImportProgressResp;
 import com.school.itas.rag.embedding.EmbeddingService;
 import com.school.itas.rag.parser.DocumentParser;
 import com.school.itas.rag.splitter.TextSplitter;
@@ -23,6 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 import jakarta.annotation.PostConstruct;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,6 +40,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     private final TextSplitter textSplitter;
     private final EmbeddingService embeddingService;
     private final MilvusServiceClient milvusServiceClient;
+    private final BulkKnowledgeImporter bulkKnowledgeImporter;
 
     @Value("${itas.upload.path:./uploads/}")
     private String uploadPath;
@@ -202,5 +206,22 @@ public class KnowledgeServiceImpl implements KnowledgeService {
             log.error("Vectorize document {} failed", docId, e);
             throw new BusinessException("向量化失败: " + e.getMessage());
         }
+    }
+
+    @Override
+    @Transactional
+    public ImportProgressResp batchImport(InputStream jsonlStream, String datasetName,
+                                           String subjectFilter, Long operatorId) {
+        return bulkKnowledgeImporter.importFromJsonl(jsonlStream, datasetName, subjectFilter, operatorId);
+    }
+
+    @Override
+    public ImportProgressResp getImportTask(String batchNo) {
+        return bulkKnowledgeImporter.getProgress(batchNo);
+    }
+
+    @Override
+    public List<KnowledgeImportTask> listImportTasks(int page, int size) {
+        return bulkKnowledgeImporter.listTasks(page, size);
     }
 }

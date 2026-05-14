@@ -20,6 +20,8 @@ public class KnowledgeDocument {
     private Integer chunkCount;
     private Integer status;
     private Long uploaderId;
+    private String source;
+    private String sourceUrl;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
