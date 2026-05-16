@@ -21,6 +21,6 @@ public class UserCreateReq {
 
     private String email;
     private String phone;
-    private Long classId;
-    private Long departmentId;
+    private String className;
+    private String departmentName;
 }

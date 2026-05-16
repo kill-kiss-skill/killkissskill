@@ -59,6 +59,20 @@ public class ResourceServiceImpl implements ResourceService {
         resourceMapper.deleteById(id);
     }
 
+    @Override
+    public ResourceResp updateResource(Long id, ResourceReq req) {
+        LearningResource r = resourceMapper.selectById(id);
+        if (r == null) throw new BusinessException(404, "资源不存在");
+        r.setTitle(req.getTitle());
+        r.setSubject(req.getSubject());
+        r.setResType(req.getResType());
+        r.setUrl(req.getUrl());
+        r.setDescription(req.getDescription());
+        r.setDifficulty(req.getDifficulty());
+        resourceMapper.updateById(r);
+        return toResp(r);
+    }
+
     private ResourceResp toResp(LearningResource r) {
         ResourceResp resp = new ResourceResp();
         resp.setId(r.getId());

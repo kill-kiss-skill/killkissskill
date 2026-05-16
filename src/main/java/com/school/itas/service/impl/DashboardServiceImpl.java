@@ -30,6 +30,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final LearningPlanMapper planMapper;
     private final KnowledgeDocumentMapper docMapper;
     private final SysClassMapper classMapper;
+    private final SysLogMapper logMapper;
 
     @Override
     public List<TeacherStudentResp> getTeacherStudents(Long userId, String keyword) {
@@ -122,9 +123,10 @@ public class DashboardServiceImpl implements DashboardService {
                 .stream().collect(Collectors.toMap(Course::getId, Function.identity()));
 
         Map<String, List<Score>> bySubject = scores.stream()
+                .filter(s -> courseMap.containsKey(s.getCourseId()))
                 .collect(Collectors.groupingBy(s -> {
                     Course c = courseMap.get(s.getCourseId());
-                    return c != null ? c.getSubject() : "未知";
+                    return c.getSubject();
                 }));
         List<StudentDashboardResp.SubjectAvg> subjectAvgs = new ArrayList<>();
         for (Map.Entry<String, List<Score>> entry : bySubject.entrySet()) {
@@ -243,6 +245,20 @@ public class DashboardServiceImpl implements DashboardService {
         resp.setTotalDocs(docMapper.selectCount(null));
         resp.setTotalScores(scoreMapper.selectCount(null));
         resp.setTotalPlans(planMapper.selectCount(null));
+
+        resp.setAiAnalysisCount(logMapper.selectCount(
+                new LambdaQueryWrapper<SysLog>().like(SysLog::getAction, "AI")));
+
+        List<Score> allScores = scoreMapper.selectList(
+                new LambdaQueryWrapper<Score>().isNotNull(Score::getGradeLevel));
+        Map<String, Long> dist = new LinkedHashMap<>();
+        for (String g : List.of("A", "B", "C", "D", "F")) dist.put(g, 0L);
+        for (Score s : allScores) {
+            if (s.getGradeLevel() != null) {
+                dist.merge(s.getGradeLevel(), 1L, Long::sum);
+            }
+        }
+        resp.setScoreDistribution(dist);
 
         return resp;
     }

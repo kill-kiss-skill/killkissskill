@@ -6,9 +6,13 @@ import com.school.itas.common.enums.RoleEnum;
 import com.school.itas.common.exception.BusinessException;
 import com.school.itas.common.utils.JwtUtil;
 import com.school.itas.entity.StudentInfo;
+import com.school.itas.entity.SysClass;
+import com.school.itas.entity.SysDepartment;
 import com.school.itas.entity.SysUser;
 import com.school.itas.entity.TeacherInfo;
 import com.school.itas.mapper.StudentInfoMapper;
+import com.school.itas.mapper.SysClassMapper;
+import com.school.itas.mapper.SysDepartmentMapper;
 import com.school.itas.mapper.SysUserMapper;
 import com.school.itas.mapper.TeacherInfoMapper;
 import com.school.itas.model.req.LoginReq;
@@ -32,6 +36,8 @@ public class UserServiceImpl implements UserService {
     private final SysUserMapper userMapper;
     private final StudentInfoMapper studentInfoMapper;
     private final TeacherInfoMapper teacherInfoMapper;
+    private final SysClassMapper classMapper;
+    private final SysDepartmentMapper departmentMapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
 
@@ -91,17 +97,23 @@ public class UserServiceImpl implements UserService {
         user.setStatus(1);
         userMapper.insert(user);
 
-        if (req.getRole() == RoleEnum.STUDENT.getCode() && req.getClassId() != null) {
+        if (req.getRole() == RoleEnum.STUDENT.getCode() && req.getClassName() != null) {
+            SysClass cls = classMapper.selectOne(
+                    new LambdaQueryWrapper<SysClass>().eq(SysClass::getClassName, req.getClassName()));
+            if (cls == null) throw new BusinessException("班级不存在: " + req.getClassName());
             StudentInfo si = new StudentInfo();
             si.setUserId(user.getId());
             si.setStudentNo(req.getUsername());
-            si.setClassId(req.getClassId());
+            si.setClassId(cls.getId());
             studentInfoMapper.insert(si);
-        } else if (req.getRole() == RoleEnum.TEACHER.getCode()) {
+        } else if (req.getRole() == RoleEnum.TEACHER.getCode() && req.getDepartmentName() != null) {
+            SysDepartment dept = departmentMapper.selectOne(
+                    new LambdaQueryWrapper<SysDepartment>().eq(SysDepartment::getName, req.getDepartmentName()));
+            if (dept == null) throw new BusinessException("院系不存在: " + req.getDepartmentName());
             TeacherInfo ti = new TeacherInfo();
             ti.setUserId(user.getId());
             ti.setTeacherNo(req.getUsername());
-            ti.setDepartmentId(req.getDepartmentId());
+            ti.setDepartmentId(dept.getId());
             teacherInfoMapper.insert(ti);
         }
     }
@@ -163,6 +175,9 @@ public class UserServiceImpl implements UserService {
         user.setRole(req.getRole());
         user.setEmail(req.getEmail());
         user.setPhone(req.getPhone());
+        if (req.getPassword() != null && !req.getPassword().trim().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(req.getPassword()));
+        }
         userMapper.updateById(user);
     }
 
@@ -181,6 +196,11 @@ public class UserServiceImpl implements UserService {
         if (user == null) throw new BusinessException(404, "用户不存在");
         studentInfoMapper.delete(new LambdaQueryWrapper<StudentInfo>().eq(StudentInfo::getUserId, userId));
         teacherInfoMapper.delete(new LambdaQueryWrapper<TeacherInfo>().eq(TeacherInfo::getUserId, userId));
+        if (user.getRole() == RoleEnum.TEACHER.getCode()) {
+            SysClass cls = new SysClass();
+            cls.setTeacherId(null);
+            classMapper.update(cls, new LambdaQueryWrapper<SysClass>().eq(SysClass::getTeacherId, userId));
+        }
         userMapper.deleteById(userId);
     }
 

@@ -26,5 +26,5 @@ public interface SystemService {
     void deleteCourse(Long id);
 
     // 日志
-    Page<SysLog> listLogs(Integer page, Integer size, Long userId);
+    Page<SysLog> listLogs(Integer page, Integer size, String keyword);
 }

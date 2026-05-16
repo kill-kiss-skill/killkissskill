@@ -52,4 +52,11 @@ public class ResourceController {
         resourceService.deleteResource(id);
         return Result.ok();
     }
+
+    @Operation(summary = "编辑资源")
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Result<ResourceResp> update(@PathVariable Long id, @Valid @RequestBody ResourceReq req) {
+        return Result.ok(resourceService.updateResource(id, req));
+    }
 }

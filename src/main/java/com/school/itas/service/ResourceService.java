@@ -13,5 +13,7 @@ public interface ResourceService {
 
     ResourceResp createResource(ResourceReq req, Long uploaderId);
 
+    ResourceResp updateResource(Long id, ResourceReq req);
+
     void deleteResource(Long id);
 }

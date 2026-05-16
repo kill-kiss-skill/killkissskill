@@ -123,7 +123,7 @@ public class SystemController {
     public Result<Page<SysLog>> listLogs(
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "20") Integer size,
-            @RequestParam(required = false) Long userId) {
-        return Result.ok(systemService.listLogs(page, size, userId));
+            @RequestParam(required = false) String keyword) {
+        return Result.ok(systemService.listLogs(page, size, keyword));
     }
 }

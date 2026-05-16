@@ -9,6 +9,7 @@ import com.school.itas.service.SystemService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -19,6 +20,7 @@ public class SystemServiceImpl implements SystemService {
     private final SysClassMapper classMapper;
     private final CourseMapper courseMapper;
     private final SysLogMapper logMapper;
+    private final SysUserMapper userMapper;
 
     @Override
     public List<SysDepartment> listDepartments() {
@@ -135,9 +137,18 @@ public class SystemServiceImpl implements SystemService {
     }
 
     @Override
-    public Page<SysLog> listLogs(Integer page, Integer size, Long userId) {
+    public Page<SysLog> listLogs(Integer page, Integer size, String keyword) {
         LambdaQueryWrapper<SysLog> wrapper = new LambdaQueryWrapper<>();
-        if (userId != null) wrapper.eq(SysLog::getUserId, userId);
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            List<Long> userIds = userMapper.selectList(
+                    new LambdaQueryWrapper<SysUser>().like(SysUser::getRealName, keyword))
+                    .stream().map(SysUser::getId).toList();
+            if (userIds.isEmpty()) {
+                wrapper.eq(SysLog::getUserId, -1L);
+            } else {
+                wrapper.in(SysLog::getUserId, userIds);
+            }
+        }
         wrapper.orderByDesc(SysLog::getCreatedAt);
         return logMapper.selectPage(new Page<>(page, size), wrapper);
     }
