@@ -88,7 +88,7 @@ public class ChatServiceImpl implements ChatService {
                 ? ragResult.getContextText() : null;
         String refIds = ragResult != null && !ragResult.getChunks().isEmpty()
                 ? ragResult.getChunks().stream()
-                    .map(c -> String.valueOf(c.getChunkId()))
+                    .map(c -> c.getChunkId() + "|" + (c.getDocTitle() != null ? c.getDocTitle() : ""))
                     .reduce((a, b) -> a + "," + b).orElse(null)
                 : null;
         saveMessage(session.getId(), "assistant", answer, ragContextJson, refIds);
@@ -139,9 +139,11 @@ public class ChatServiceImpl implements ChatService {
                         String[] ids = m.getRefChunkIds().split(",");
                         r.setReferences(java.util.Arrays.stream(ids)
                                 .filter(id -> !id.isBlank())
-                                .map(id -> {
+                                .map(part -> {
                                     ChatResp.ChunkRef ref = new ChatResp.ChunkRef();
-                                    ref.setChunkId(Long.valueOf(id));
+                                    String[] pair = part.split("\\|", 2);
+                                    ref.setChunkId(Long.valueOf(pair[0]));
+                                    if (pair.length > 1) ref.setDocTitle(pair[1]);
                                     return ref;
                                 }).toList());
                     }

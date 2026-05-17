@@ -142,6 +142,18 @@ public class DashboardServiceImpl implements DashboardService {
             sa.setGradeLevel(calcGradeLevel(avg));
             subjectAvgs.add(sa);
         }
+        // 确保6门固定学科都存在，无数据的填0
+        List<String> allSubjects = List.of("数据结构", "操作系统", "计算机网络", "数据库", "算法", "Java程序设计");
+        for (String subj : allSubjects) {
+            boolean exists = subjectAvgs.stream().anyMatch(sa -> subj.equals(sa.getSubject()));
+            if (!exists) {
+                StudentDashboardResp.SubjectAvg sa = new StudentDashboardResp.SubjectAvg();
+                sa.setSubject(subj);
+                sa.setAvgScore(BigDecimal.ZERO);
+                sa.setGradeLevel(null);
+                subjectAvgs.add(sa);
+            }
+        }
         resp.setSubjectAvgs(subjectAvgs);
 
         Map<String, Integer> gradeDist = new LinkedHashMap<>();
